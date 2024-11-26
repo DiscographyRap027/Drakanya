@@ -1,0 +1,48 @@
+name: Jekyll site CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4  # Vérifie le code dans le repository
+
+    - name: Set up Ruby  # Installe Ruby pour utiliser Jekyll
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.1  # La version de Ruby que vous souhaitez utiliser pour Jekyll
+
+    - name: Install dependencies  # Installer les dépendances nécessaires
+      run: |
+        gem install jekyll bundler
+        bundle install  # Installe les dépendances du Gemfile si vous en avez un
+
+    - name: Build the site with Jekyll  # Exécute Jekyll pour générer le site
+      run: |
+        jekyll build --future
+
+    - name: Upload the built site  # Télécharge les fichiers générés
+      uses: actions/upload-artifact@v3
+      with:
+        name: jekyll-site
+        path: ./_site  # C'est le répertoire généré par Jekyll contenant votre site
+
+    - name: Deploy to GitHub Pages  # Déploiement sur GitHub Pages (optionnel si nécessaire)
+      if: github.event_name == 'push'  # Déployer uniquement sur les pushs sur `main`
+      run: |
+        echo "Deploying to GitHub Pages"
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git clone --depth 1 --branch gh-pages https://github.com/${{ github.repository }} gh-pages
+        cp -r ./_site/* gh-pages/
+        cd gh-pages
+        git add .
+        git commit -m "Deploy Jekyll site"
+        git push
